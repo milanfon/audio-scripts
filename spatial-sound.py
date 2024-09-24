@@ -2,6 +2,7 @@ import numpy as np
 import sounddevice as sd
 import time
 import threading
+import sys
 
 def generate_sine_wave(frequency, duration, sample_rate=44100):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
@@ -31,7 +32,8 @@ def monitor_input(interval=0.1, duration=5, sample_rate=44100):
         while time.time() - start_time < duration:
             data, _ = stream.read(int(sample_rate * interval))
             rms_level = get_level(data)
-            print(f"Input level: {rms_level:.2f} dB(A)")
+            sys.stdout.write(f"\rInput level: {rms_level:.2f} dB(A)")
+            sys.stdout.flush()
             time.sleep(interval)
 
 if __name__ == "__main__":
