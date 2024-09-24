@@ -3,8 +3,10 @@ import sounddevice as sd
 import time
 import threading
 import sys
+import csv
 
 last_measured_level = None
+measured_values = []
 
 def generate_sine_wave(frequency, duration, sample_rate=44100):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
@@ -42,20 +44,39 @@ def monitor_input(interval=0.1, duration=5, sample_rate=44100):
 
 if __name__ == "__main__":
     frequency = 500  
-    duration = 10      
+    duration = 3      
 
     print("Available audio devices:")
     print(sd.query_devices())
 
-    wave_thread = threading.Thread(target=play_sine_wave, args=(frequency, duration))
-    monitor_thread = threading.Thread(target=monitor_input, kwargs={"duration": duration})
+    num_segments = 8
 
-    wave_thread.start()
-    monitor_thread.start()
+    for segment in range(1, num_segments + 1):
+        input(f"\nPosition {segment}/{num_segments}: Press Enter to start measurement.")
+        last_measured_level = None
 
-    wave_thread.join()
-    monitor_thread.join()
+        wave_thread = threading.Thread(target=play_sine_wave, args=(frequency, duration))
+        monitor_thread = threading.Thread(target=monitor_input, kwargs={"duration": duration})
 
-    print(f"\nMeasured value: {last_measured_level:.2f} dB(A)")
+        wave_thread.start()
+        monitor_thread.start()
+
+        wave_thread.join()
+        monitor_thread.join()
+
+        if last_measured_level is not None:
+            measured_values.append((segment, last_measured_level))
+            print(f"\nMeasured value at position {segment}: {last_measured_level:.2f} dB(A)")
+        else:
+            print(f"No measurement recorded at position {segment}.")
+
+    csv_filename = "measurements.csv"
+    with open(csv_filename, mode="w", newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['Position', 'Measured Level (dB(A))'])
+        for segment, level in measured_values:
+            csv_writer.writerow([segment, f"{level:.2f}"])
+
+    print(f"\nAll measurements completed. Results saved to {csv_filename}")
 
     print("Finished!")
