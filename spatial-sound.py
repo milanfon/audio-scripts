@@ -4,6 +4,8 @@ import time
 import threading
 import sys
 
+last_measured_level = None
+
 def generate_sine_wave(frequency, duration, sample_rate=44100):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     wave = 0.5 * np.sin(2 * np.pi * frequency * t)
@@ -26,12 +28,14 @@ def get_level(data, reference=0.00002):     # The reference value is important
         return -np.inf
 
 def monitor_input(interval=0.1, duration=5, sample_rate=44100):
+    global last_measured_level
     print("Monitor input audio levels...")
     with sd.InputStream(samplerate=sample_rate, channels=1) as stream:
         start_time = time.time()
         while time.time() - start_time < duration:
             data, _ = stream.read(int(sample_rate * interval))
             rms_level = get_level(data)
+            last_measured_level = rms_level
             sys.stdout.write(f"\rInput level: {rms_level:.2f} dB(A)")
             sys.stdout.flush()
             time.sleep(interval)
@@ -51,5 +55,7 @@ if __name__ == "__main__":
 
     wave_thread.join()
     monitor_thread.join()
+
+    print(f"\nMeasured value: {last_measured_level:.2f} dB(A)")
 
     print("Finished!")
